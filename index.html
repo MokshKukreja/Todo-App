@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Todo App</h1>
+        <input type="text" id="taskInput">
+        <ul id="taskList">
+        </ul>
+        <button id="addButton">Add Task</button>
+    </div>
+
+    <script>
+
+        const taskInput = document.getElementById('taskInput')
+        const taskList = document.getElementById('taskList')
+        const addButton = document.getElementById('addButton')
+
+        addButton.addEventListener('click', function () {
+            const taskText = taskInput.value; 
+            if (taskText !== "") {
+                const li = document.createElement("li");
+                const taskId = generateUniqueId();
+                li.setAttribute("data-task-id", taskId);
+                li.innerHTML = `
+                    <span>${taskText}</span>
+                    <button class="deleteBtn">x</button>
+                `;
+                taskList.appendChild(li);
+                taskInput.value = "";
+
+                fetch("/addtask", {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ task: taskText, taskId: taskId })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data.message); 
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }
+        });
+
+        fetch("/displaytask")
+            .then(response => response.json())
+            .then(tasks => {
+                const taskList = document.getElementById("taskList");
+                taskList.innerHTML = tasks.map(task => `
+            <li data-task-id="${task._id}">
+                <span>${task.task}</span>
+                <button class="deleteBtn">x</button>
+            </li>
+        `).join("");
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+
+
+
+        taskList.addEventListener("click", function (event) {
+            if (event.target.classList.contains("deleteBtn")) {
+                const taskItem = event.target.parentElement;
+                const taskId = taskItem.getAttribute("data-task-id");
+
+                fetch(`/delete/${taskId}`, {
+                    method: "DELETE"
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data.message);
+                        taskItem.remove();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }
+        });
+
+        function generateUniqueId() {
+            return '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+    </script>
+</body>
+
+</html>
